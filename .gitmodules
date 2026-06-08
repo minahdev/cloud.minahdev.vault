@@ -1,0 +1,3 @@
+[submodule "cloud.minahdev.vault"]
+	path = cloud.minahdev.vault
+	url = https://github.com/minahdev/cloud.minahdev.vault.git
