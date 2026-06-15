@@ -39,96 +39,127 @@ flowchart LR
 
 ```mermaid
 erDiagram
-    SECOM_USERS ||--o| USER_INFORMATION : profile
-    SECOM_USERS ||--o{ TODAY_STORIES : stories
-    SECOM_USERS ||--o{ TRAIN_DAILY_LOGS : logs
-    SECOM_USERS ||--o{ LESSONS : lessons
-    SECOM_USERS ||--o{ COMMUNITY_POSTS : posts
-    SECOM_USERS ||--o{ COMMUNITY_COMMENTS : comments
-    SECOM_USERS ||--o{ COMMUNITY_POST_CHEERS : cheers
-    SECOM_USERS ||--o{ NOTICES : notices
-    SECOM_USERS ||--o{ SCHEDULE_INVITE_CODES : invites
-    SECOM_USERS ||--o{ SCHEDULE_ACCESS_GRANTS : admitted
-    COMMUNITY_POSTS ||--o{ COMMUNITY_COMMENTS : has
-    COMMUNITY_POSTS ||--o{ COMMUNITY_POST_CHEERS : has
-
-    SECOM_USERS {
+    USERS {
         int id PK
         varchar user_id UK
+        varchar password_hash
         varchar email
         varchar nickname
-        varchar user_role
+        varchar role
     }
 
     USER_INFORMATION {
         int id PK
         int user_id FK
+        varchar full_name
         varchar gender
+        varchar birth_date
+        varchar phone
+        float height_cm
+        float weight_kg
+        varchar favorite_exercise
+        varchar favorite_exercise_other
+        varchar exercise_experience
         varchar weekly_goal
-    }
-
-    SCHEDULE_ACCESS {
-        int id PK
-        varchar password_hash
-    }
-
-    SCHEDULE_INVITE_CODES {
-        int id PK
-        varchar code_digest UK
-        varchar created_by_user_id
-        timestamptz expires_at
-        int max_uses
-        int use_count
-    }
-
-    SCHEDULE_ACCESS_GRANTS {
-        int id PK
-        varchar login_user_id UK
-        timestamptz granted_at
-    }
-
-    TODAY_STORIES {
-        int id PK
-        int user_id FK
-        date story_date
-    }
-
-    TRAIN_DAILY_LOGS {
-        int id PK
-        int user_id FK
-        date log_date
-        jsonb diet
-    }
-
-    LESSONS {
-        int id PK
-        int member_user_id FK
-        varchar client_id
-    }
-
-    COMMUNITY_POSTS {
-        int id PK
-        int author_user_id FK
-        jsonb media_json
-    }
-
-    COMMUNITY_POST_CHEERS {
-        int id PK
-        int post_id FK
-        int user_id FK
-    }
-
-    COMMUNITY_COMMENTS {
-        int id PK
-        int post_id FK
-        int author_user_id FK
+        text health_note
     }
 
     NOTICES {
         int id PK
         int author_user_id FK
         varchar title
+        text body
+        timestamptz created_at
     }
+
+    TODAY_STORIES {
+        int id PK
+        int user_id FK
+        date story_date
+        varchar mood
+        text story
+        timestamptz updated_at
+    }
+
+    TRAIN_DAILY_LOGS {
+        int id PK
+        int user_id FK
+        date log_date
+        jsonb muscles
+        text workout
+        float weight_kg
+        jsonb diet
+        text memo
+        int exercise_minutes
+        timestamptz updated_at
+    }
+
+    LESSONS {
+        int id PK
+        int member_user_id FK
+        varchar client_id
+        varchar lesson_date
+        varchar title
+        varchar time
+        text schedule_note
+        jsonb record
+        timestamptz created_at
+    }
+
+    SCHEDULE_INVITE_CODES {
+        int id PK
+        varchar code_digest UK
+        int created_by_user_id FK
+        timestamptz expires_at
+        int max_uses
+        int use_count
+        timestamptz created_at
+    }
+
+    SCHEDULE_ACCESS_GRANTS {
+        int id PK
+        varchar user_id UK
+        timestamptz granted_at
+    }
+
+    COMMUNITY_POSTS {
+        int id PK
+        int author_user_id FK
+        varchar workout_type
+        text content
+        float distance_km
+        int duration_min
+        int calories
+        jsonb media_json
+        timestamptz created_at
+    }
+
+    COMMUNITY_COMMENTS {
+        int id PK
+        int author_user_id FK
+        int post_id FK
+        timestamptz created_at
+        text content
+    }
+
+    COMMUNITY_POST_CHEERS {
+        int id PK
+        int post_id FK
+        int user_id FK
+        timestamptz created_at
+    }
+
+    USERS ||--o{ USER_INFORMATION : "has"
+    USERS ||--o{ NOTICES : "writes"
+    USERS ||--o{ TODAY_STORIES : "logs"
+    USERS ||--o{ TRAIN_DAILY_LOGS : "records"
+    USERS ||--o{ LESSONS : "member_of"
+    USERS ||--o{ SCHEDULE_INVITE_CODES : "creates"
+    USERS ||--o{ COMMUNITY_POSTS : "posts"
+    USERS ||--o{ COMMUNITY_COMMENTS : "comments"
+    USERS ||--o{ COMMUNITY_POST_CHEERS : "cheers"
+    COMMUNITY_POSTS ||--o{ COMMUNITY_COMMENTS : "has"
+    COMMUNITY_POSTS ||--o{ COMMUNITY_POST_CHEERS : "receives"
 ```
 
 다이어그램 `user_role` = DB 컬럼 `role` · `login_user_id` = `schedule_access_grants.user_id` · `created_by_user_id` = 코치 로그인 ID
@@ -171,11 +202,11 @@ erDiagram
 | updated_by_user_id | varchar     | FK 없음   |
 | updated_at         | timestamptz |         |
 
-| `schedule_access_grants` | 타입 | 비고 |
-|--------------------------|------|------|
-| id | int PK | |
-| user_id | varchar UK | 로그인 문자열 · `secom_users.user_id`와 동일 값 |
-| granted_at | timestamptz | 코드 redeem 성공 시 등록 |
+| `schedule_access_grants` | 타입          | 비고                                    |
+| ------------------------ | ----------- | ------------------------------------- |
+| id                       | int PK      |                                       |
+| user_id                  | varchar UK  | 로그인 문자열 · `secom_users.user_id`와 동일 값 |
+| granted_at               | timestamptz | 코드 redeem 성공 시 등록                     |
 
 | `schedule_invite_codes` | 타입          | 비고                           |
 | ----------------------- | ----------- | ---------------------------- |
@@ -211,17 +242,17 @@ erDiagram
 | exercise_minutes | int | |
 | updated_at | timestamptz | |
 
-| `lessons` | 타입 | 비고 |
-|-----------|------|------|
-| id | int PK | |
-| member_user_id | int FK | UK with client_id |
-| client_id | varchar | |
-| lesson_date | varchar | |
-| title | varchar | |
-| time | varchar | |
-| schedule_note | text | |
-| record | jsonb | |
-| created_at | timestamptz | |
+| `lessons`      | 타입          | 비고                |
+| -------------- | ----------- | ----------------- |
+| id             | int PK      |                   |
+| member_user_id | int FK      | UK with client_id |
+| client_id      | varchar     |                   |
+| lesson_date    | varchar     |                   |
+| title          | varchar     |                   |
+| time           | varchar     |                   |
+| schedule_note  | text        |                   |
+| record         | jsonb       |                   |
+| created_at     | timestamptz |                   |
 
 | `community_posts` | 타입 | 비고 |
 |-------------------|------|------|
@@ -262,20 +293,20 @@ erDiagram
 
 ## 테이블 · 모듈 · 유일 제약
 
-| DB 테이블                   | 모듈     | PK   | 유일 제약 / 비고                         |
-| ------------------------ | ------ | ---- | ---------------------------------- |
-| `secom_users`            | secom  | `id` | `user_id` UK                       |
-| `user_information`       | secom  | `id` | `user_id` FK → `secom_users.id` UK |
-| `schedule_access`        | secom  | `id` | 앱 전역 1행 · 구 공통 암호                  |
-| `schedule_invite_codes`  | secom  | `id` | `code_digest` UK                   |
-| `schedule_access_grants` | secom  | `id` | `user_id`(로그인 문자열) UK              |
-| `today_stories`          | inbody | `id` | `(user_id, story_date)`            |
-| `train_daily_logs`       | inbody | `id` | `(user_id, log_date)`              |
-| `lessons`                | inbody | `id` | `(member_user_id, client_id)`      |
-| `community_posts`        | inbody | `id` | —                                  |
-| `community_post_cheers`  | inbody | `id` | `(post_id, user_id)`               |
-| `community_comments`     | inbody | `id` | —                                  |
-| `notices`                | inbody | `id` | 작성·삭제는 `role=admin` (앱 로직)         |
+| DB 테이블                   | 모듈     | PK   | 유일 제약 / 비고                         |     |
+| ------------------------ | ------ | ---- | ---------------------------------- | --- |
+| `secom_users`            | secom  | `id` | `user_id` UK                       |     |
+| `user_information`       | secom  | `id` | `user_id` FK → `secom_users.id` UK |     |
+| `schedule_access`        | secom  | `id` | 앱 전역 1행 · 구 공통 암호                  |     |
+| `schedule_invite_codes`  | secom  | `id` | `code_digest` UK                   |     |
+| `schedule_access_grants` | secom  | `id` | `user_id`(로그인 문자열) UK              |     |
+| `today_stories`          | inbody | `id` | `(user_id, story_date)`            |     |
+| `train_daily_logs`       | inbody | `id` | `(user_id, log_date)`              |     |
+| `lessons`                | inbody | `id` | `(member_user_id, client_id)`      |     |
+| `community_posts`        | inbody | `id` | —                                  |     |
+| `community_post_cheers`  | inbody | `id` | `(post_id, user_id)`               |     |
+| `community_comments`     | inbody | `id` | —                                  |     |
+| `notices`                | inbody | `id` | 작성·삭제는 `role=admin` (앱 로직)         |     |
 
 ---
 
