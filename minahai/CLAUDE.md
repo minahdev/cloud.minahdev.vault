@@ -148,6 +148,8 @@ from minahai.core.matrix.oracle_database import get_db  # 항상 이 경로
 
 ## 5. titanic — 캐릭터 네이밍 & 헥사고날 참조
 
+상세 규칙: [titanic/_docs/CLAUDE.md](../../minahai/apps/titanic/_docs/CLAUDE.md)
+
 캐릭터별로 독립적인 Use Case·Router·Repository 세트 보유.
 
 | 캐릭터 | 역할 |
