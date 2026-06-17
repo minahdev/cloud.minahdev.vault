@@ -41,8 +41,8 @@ FastAPI 백엔드 전용 규칙. 전역 행동 원칙은 [루트 CLAUDE.md](../.
 | Pydantic Schema | `adapter/inbound/api/schemas/` | HTTP 요청·응답, OpenAPI |
 | Input Port | `app/ports/input/*_use_case.py` | ABC + @abstractmethod |
 | Application | `app/use_cases/*_interactor.py` | Command 조립, 저장 오케스트레이션 |
-| Output Port | `app/ports/output/*_repository.py` | 저장소 계약 (ABC) |
-| Outbound PG | `adapter/outbound/pg/*_pg_repository.py` | Port 구현, SQLAlchemy 세션 |
+| Output Port | `app/ports/output/*_port.py` | 저장소 계약 (ABC) |
+| Outbound PG | `adapter/outbound/pg/*_repository.py` | Port 구현, SQLAlchemy 세션 |
 | ORM | `adapter/outbound/orm/*_orm.py` | 테이블 매핑 (`__tablename__`) |
 | Command/DTO | `app/dtos/` | 유스케이스·레포 내부 데이터 (프레임워크 무관) |
 | DI Factory | `dependencies/*.py` | get_db → Repository → Interactor 조립 |
@@ -168,7 +168,7 @@ from minahai.core.matrix.oracle_database import get_db  # 항상 이 경로
 titanic/
 ├── app/
 │   ├── ports/input/<name>_use_case.py
-│   ├── ports/output/<name>_repository.py
+│   ├── ports/output/<name>_port.py
 │   ├── dtos/<name>_dto.py
 │   └── use_cases/<name>_interactor.py
 ├── adapter/
@@ -176,18 +176,18 @@ titanic/
 │   ├── inbound/api/v1/<name>_router.py
 │   └── outbound/
 │       ├── orm/<name>_orm.py
-│       └── pg/<name>_pg_repository.py
+│       └── pg/<name>_repository.py
 └── dependencies/<name>_provider.py
 ```
 
 ### 새 캐릭터 체크리스트
 
 1. `app/ports/input/<name>_use_case.py` — ABC
-2. `app/ports/output/<name>_repository.py` — ABC
+2. `app/ports/output/<name>_port.py` — ABC
 3. `app/dtos/<name>_dto.py` — Command/Response
 4. `app/use_cases/<name>_interactor.py` — Repository 생성자 주입
 5. `adapter/outbound/orm/<name>_orm.py` — 테이블 모델
-6. `adapter/outbound/pg/<name>_pg_repository.py` — Port 구현
+6. `adapter/outbound/pg/<name>_repository.py` — Port 구현
 7. `adapter/inbound/api/schemas/<name>_schema.py` — Pydantic
 8. `adapter/inbound/api/v1/<name>_router.py` — thin router
 9. `dependencies/<name>_provider.py` — DIP 팩토리
@@ -251,3 +251,20 @@ from core.matrix.oracle_database import get_db
 |------|------|------|
 | **interval** | 기준점 없이 일정 구간 측정 | 온도, pH, 시간대 (10배 덥다 불가) |
 | **ratio** | 절대 원점 기준, 비율 가능 | 나이, 돈, 몸무게 (10배 많다 가능) |
+
+---
+
+## 9. async def vs def 선택 원칙
+
+| 성격 | 예시 | 형태 |
+|------|------|------|
+| **I/O-bound** — DB, 외부 API, LLM, 파일 I/O | `introduce_myself`, `chat` | `async def` |
+| **CPU-bound** — 순수 연산, 형태소 분석(Kiwi), 수치 처리 | `analyze_intent` | `def` |
+
+- `async def`는 코루틴을 만들 뿐, CPU 연산을 비블로킹으로 바꾸지 않는다.
+- CPU-bound 메소드에 `async`를 붙이면 이벤트 루프를 막으면서 비블로킹처럼 보이는 거짓 표시가 된다.
+- Kiwi 등 CPU 작업이 실제로 이벤트 루프 블로킹 문제가 된다면, 메소드를 `async`로 바꾸는 대신 호출 측에서 스레드풀로 넘긴다:
+
+```python
+result = await asyncio.to_thread(use_case.analyze_intent, question)
+```
