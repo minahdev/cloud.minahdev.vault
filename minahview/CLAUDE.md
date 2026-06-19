@@ -127,3 +127,13 @@ minahview/
 - 존재하지 않는 백엔드 엔드포인트 호출
 - 요청 범위 밖 컴포넌트 리팩터링·추출
 - git commit/push — 사용자 명시 요청 시에만
+
+
+## 다크 모드
+
+상세 규칙: [_docs/pace_darkmode_spec.md](_docs/pace_darkmode_spec.md)
+
+- `next-themes` `ThemeProvider` — `attribute="class"`, `defaultTheme="dark"`
+- `globals.css`에 `:root` / `.dark` CSS 변수 정의됨 (변경 금지)
+- `<html>` 태그에 `suppressHydrationWarning` 필수
+- 새 컴포넌트 색상은 CSS 변수(`bg-background`, `text-foreground` 등) 사용

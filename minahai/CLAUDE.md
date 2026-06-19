@@ -146,6 +146,85 @@ from minahai.core.matrix.oracle_database import get_db  # 항상 이 경로
 
 ---
 
+## 4-1. Entity / 테이블 규칙
+
+이 프로젝트의 **모든 테이블**은 동일한 기본 키 규칙을 따릅니다.
+
+### 기본 원칙
+
+| 항목 | 규칙 |
+|------|------|
+| 기본 키(PK) 컬럼명 | **`id`** (통일) |
+| 타입 | **`int`** (정수) |
+| 생성 방식 | DB **자동 증감** (PostgreSQL: `SERIAL` / `IDENTITY`, Alembic: `autoincrement=True`) |
+| 용도 | 시스템 내부용 고유 번호 (비즈니스 식별자와 분리) |
+
+- 로그인 아이디(`user_id`), 이메일 등 **업무 식별자**는 별도 컬럼으로 두고, PK `id`와 혼용하지 않습니다.
+- 외래 키(FK)는 가능하면 참조 테이블의 **`id`** 를 가리킵니다 (`user_id` 문자열을 PK로 쓰지 않음).
+
+### SQLModel 정의 (권장 템플릿)
+
+```python
+from typing import Optional
+from sqlmodel import Field, SQLModel
+
+
+class ExampleTable(SQLModel, table=True):
+    __tablename__ = "example_table"
+
+    id: Optional[int] = Field(
+        default=None,
+        primary_key=True,
+        sa_column_kwargs={"name": "id"},
+    )
+    # 이하 비즈니스 컬럼 …
+```
+
+### SQLAlchemy 2.0 (`Mapped`) 동일 규칙
+
+```python
+from sqlalchemy import Integer
+from sqlalchemy.orm import Mapped, mapped_column
+from database import Base
+
+
+class ExampleTable(Base):
+    __tablename__ = "example_table"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, name="id")
+```
+
+**FK 예시 (회원 → 프로필)**
+
+```python
+class UserInformation(Base):
+    __tablename__ = "user_information"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("secom_users.id", ondelete="CASCADE"),
+        unique=True,
+        index=True,
+    )
+```
+
+### Alembic 마이그레이션
+
+```python
+sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+sa.PrimaryKeyConstraint("id"),
+```
+
+### 체크리스트 (PR 전)
+
+- [ ] 모든 `table=True` 엔티티에 **`id: int` PK** 가 있는가?
+- [ ] PK 컬럼명이 DB에서 **`id`** 인가?
+- [ ] FK가 참조 테이블의 **`id`** 를 가리키는가?
+- [ ] Alembic revision에 `id` + `autoincrement` 가 반영되었는가?
+
+---
+
 ## 5. titanic — 캐릭터 네이밍 & 헥사고날 참조
 
 상세 규칙: [titanic/_docs/CLAUDE.md](../../minahai/apps/titanic/_docs/CLAUDE.md)
